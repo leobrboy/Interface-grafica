@@ -8,6 +8,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import os
+import traceback
 
 ARQUIVO_EXCEL = "dados_temperatura.xlsx"
 
@@ -18,7 +19,7 @@ def buscar_dados():
     # options.add_argument("--headless")  # Desativado para ver o navegador
 # options.add_argument("--disable-gpu")
 
-    service = Service(executable_path="C:/WebDrivers/chromedriver.exe")
+    service = Service(executable_path="chromedriver.exe")
     driver = webdriver.Chrome(service=service, options=options)
 
     try:
@@ -51,6 +52,7 @@ def buscar_dados():
     except Exception as e:
         status_label.config(text="Erro ao captar dados.")
         print("Erro:", e)
+        traceback.print_exc()
     finally:
         driver.quit()
 
