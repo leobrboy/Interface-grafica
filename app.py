@@ -2,8 +2,11 @@ from tkinter import Tk, Button, Label
 from datetime import datetime
 from openpyxl import Workbook, load_workbook
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import os
 
 ARQUIVO_EXCEL = "dados_temperatura.xlsx"
@@ -15,13 +18,22 @@ def buscar_dados():
     options.add_argument("--headless")
     options.add_argument("--disable-gpu")
 
-    # Caminho direto para o ChromeDriver
-    driver = webdriver.Chrome(executable_path="C:/WebDrivers/chromedriver.exe", options=options)
-    driver.get("https://www.google.com/search?q=temperatura+em+São+Paulo")
+    service = Service(executable_path="C:/WebDrivers/chromedriver.exe")
+    driver = webdriver.Chrome(service=service, options=options)
 
     try:
-        temperatura = driver.find_element(By.ID, "wob_tm").text
-        umidade = driver.find_element(By.ID, "wob_hm").text
+        driver.get("https://www.google.com/search?q=temperatura+em+São+Paulo")
+
+        # Espera até 10 segundos para garantir que os elementos estejam carregados
+        temperatura_element = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "wob_tm"))
+        )
+        umidade_element = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "wob_hm"))
+        )
+
+        temperatura = temperatura_element.text
+        umidade = umidade_element.text
         data_hora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
         if not os.path.exists(ARQUIVO_EXCEL):
@@ -42,6 +54,7 @@ def buscar_dados():
     finally:
         driver.quit()
 
+# Interface gráfica com Tkinter
 app = Tk()
 app.title("Captura de Temperatura SP")
 app.geometry("300x180")
