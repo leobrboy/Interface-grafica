@@ -22,18 +22,18 @@ def buscar_dados():
     driver = webdriver.Chrome(service=service, options=options)
 
     try:
-        driver.get("https://www.google.com/search?q=temperatura+em+São+Paulo")
+        driver.get("https://www.climatempo.com.br/previsao-do-tempo/cidade/558/saopaulo-sp")
 
-        # Espera até 10 segundos para garantir que os elementos estejam carregados
         temperatura_element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "wob_tm"))
-        )
-        umidade_element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "wob_hm"))
+            EC.presence_of_element_located((By.CLASS_NAME, "temperature__value"))
         )
 
-        temperatura = temperatura_element.text
-        umidade = umidade_element.text
+        umidade_element = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//li[contains(text(), 'Umidade') or contains(text(), 'umidade')]"))
+        )
+
+        temperatura = temperatura_element.text.strip().replace("°", "")
+        umidade = umidade_element.text.strip().split(":")[-1].strip()
         data_hora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
         if not os.path.exists(ARQUIVO_EXCEL):
@@ -56,7 +56,7 @@ def buscar_dados():
 
 # Interface gráfica com Tkinter
 app = Tk()
-app.title("Captura de Temperatura SP")
+app.title("Captura de Temperatura SP (ClimaTempo)")
 app.geometry("300x180")
 
 titulo = Label(app, text="Temperatura São Paulo", font=("Arial", 14))
