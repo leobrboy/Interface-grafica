@@ -15,8 +15,8 @@ def buscar_dados():
     status_label.config(text="Buscando dados...")
 
     options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
+    # options.add_argument("--headless")  # Desativado para ver o navegador
+# options.add_argument("--disable-gpu")
 
     service = Service(executable_path="C:/WebDrivers/chromedriver.exe")
     driver = webdriver.Chrome(service=service, options=options)
