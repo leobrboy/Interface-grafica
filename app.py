@@ -2,6 +2,7 @@ from tkinter import Tk, Button, Label
 from datetime import datetime
 from openpyxl import Workbook, load_workbook
 from selenium import webdriver
+<<<<<<< HEAD
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -9,11 +10,17 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import os
 import traceback
+=======
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+import os
+>>>>>>> cca05e2f0150bc4029a8566f52ec0463a1ebd928
 
 ARQUIVO_EXCEL = "dados_temperatura.xlsx"
 
 def buscar_dados():
     status_label.config(text="Buscando dados...")
+<<<<<<< HEAD
 
     options = Options()
     # options.add_argument("--headless")  # Desativado para ver o navegador
@@ -46,6 +53,17 @@ def buscar_dados():
         umidade = umidade_element.text.strip()
         data_hora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
+=======
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--disable-gpu")
+    driver = webdriver.Chrome(options=options)
+    driver.get("https://www.google.com/search?q=temperatura+em+São+Paulo")
+    try:
+        temperatura = driver.find_element(By.ID, "wob_tm").text
+        umidade = driver.find_element(By.ID, "wob_hm").text
+        data_hora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+>>>>>>> cca05e2f0150bc4029a8566f52ec0463a1ebd928
         if not os.path.exists(ARQUIVO_EXCEL):
             wb = Workbook()
             ws = wb.active
@@ -53,6 +71,7 @@ def buscar_dados():
         else:
             wb = load_workbook(ARQUIVO_EXCEL)
             ws = wb.active
+<<<<<<< HEAD
 
         # Clean temperatura string to handle multiple lines or values
         temperatura_clean = temperatura.split('\n')[0].strip()
@@ -66,10 +85,15 @@ def buscar_dados():
             status_label.config(text="Erro: Feche o arquivo Excel antes de salvar.")
             return
  
+=======
+        ws.append([data_hora, temperatura, umidade])
+        wb.save(ARQUIVO_EXCEL)
+>>>>>>> cca05e2f0150bc4029a8566f52ec0463a1ebd928
         status_label.config(text=f"Capturado: {temperatura}°C, {umidade}")
     except Exception as e:
         status_label.config(text="Erro ao captar dados.")
         print("Erro:", e)
+<<<<<<< HEAD
         traceback.print_exc()
     finally:
         driver.quit()
@@ -88,4 +112,18 @@ botao.pack(pady=10)
 status_label = Label(app, text="", font=("Arial", 10))
 status_label.pack()
 
+=======
+    finally:
+        driver.quit()
+
+app = Tk()
+app.title("Captura de Temperatura SP")
+app.geometry("300x180")
+titulo = Label(app, text="Temperatura São Paulo", font=("Arial", 14))
+titulo.pack(pady=10)
+botao = Button(app, text="Buscar previsão", command=buscar_dados, width=20, height=2, bg="lightblue")
+botao.pack(pady=10)
+status_label = Label(app, text="", font=("Arial", 10))
+status_label.pack()
+>>>>>>> cca05e2f0150bc4029a8566f52ec0463a1ebd928
 app.mainloop()
