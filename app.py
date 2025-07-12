@@ -25,16 +25,25 @@ def buscar_dados():
     try:
         driver.get("https://www.climatempo.com.br/previsao-do-tempo/cidade/558/saopaulo-sp")
 
-        temperatura_element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CLASS_NAME, "temperature__value"))
+        # Close cookie consent popup if present
+        try:
+            consent_button = WebDriverWait(driver, 5).until(
+                EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'OK')]"))
+            )
+            consent_button.click()
+        except:
+            pass
+
+        temperatura_element = WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'Temperatura')]/following-sibling::*[1] | //td[contains(text(), 'Temperatura')]/following-sibling::td"))
         )
 
-        umidade_element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//li[contains(text(), 'Umidade') or contains(text(), 'umidade')]"))
+        umidade_element = WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'Umidade')]/following-sibling::*[1] | //td[contains(text(), 'Umidade')]/following-sibling::td"))
         )
 
         temperatura = temperatura_element.text.strip().replace("°", "")
-        umidade = umidade_element.text.strip().split(":")[-1].strip()
+        umidade = umidade_element.text.strip()
         data_hora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
         if not os.path.exists(ARQUIVO_EXCEL):
@@ -45,9 +54,18 @@ def buscar_dados():
             wb = load_workbook(ARQUIVO_EXCEL)
             ws = wb.active
 
-        ws.append([data_hora, temperatura, umidade])
-        wb.save(ARQUIVO_EXCEL)
-
+        # Clean temperatura string to handle multiple lines or values
+        temperatura_clean = temperatura.split('\n')[0].strip()
+        umidade_clean = umidade.replace('%','').split('\n')[0].strip()
+        temperatura_str = f"{int(float(temperatura_clean))}°C"
+        umidade_str = f"{int(umidade_clean)}%"
+        ws.append([data_hora, temperatura_str, umidade_str])
+        try:
+            wb.save(ARQUIVO_EXCEL)
+        except PermissionError:
+            status_label.config(text="Erro: Feche o arquivo Excel antes de salvar.")
+            return
+ 
         status_label.config(text=f"Capturado: {temperatura}°C, {umidade}")
     except Exception as e:
         status_label.config(text="Erro ao captar dados.")
