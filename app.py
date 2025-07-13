@@ -1,129 +1,111 @@
-from tkinter import Tk, Button, Label
+import threading
+import logging
 from datetime import datetime
+from typing import Optional
+from tkinter import Tk, Button, Label
 from openpyxl import Workbook, load_workbook
 from selenium import webdriver
-<<<<<<< HEAD
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import os
-import traceback
-=======
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-import os
->>>>>>> cca05e2f0150bc4029a8566f52ec0463a1ebd928
 
-ARQUIVO_EXCEL = "dados_temperatura.xlsx"
+# Configuration constants
+EXCEL_FILE_PATH = "dados_temperatura.xlsx"
+CHROMEDRIVER_PATH = "C:/WebDrivers/chromedriver.exe"
+HEADLESS_MODE = False  # Set to True to run Chrome in headless mode
 
-def buscar_dados():
+# Setup logger
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def fetch_weather_data(status_label: Label) -> None:
+    """
+    Fetch temperature and humidity data from AccuWeather website and save to Excel file.
+    Updates the status_label with progress and results.
+    """
     status_label.config(text="Buscando dados...")
-<<<<<<< HEAD
 
     options = Options()
-    # options.add_argument("--headless")  # Desativado para ver o navegador
-# options.add_argument("--disable-gpu")
+    if HEADLESS_MODE:
+        options.add_argument("--headless")
+        options.add_argument("--disable-gpu")
 
-    service = Service(executable_path="chromedriver.exe")
+    service = Service(executable_path=CHROMEDRIVER_PATH)
     driver = webdriver.Chrome(service=service, options=options)
 
     try:
-        driver.get("https://www.climatempo.com.br/previsao-do-tempo/cidade/558/saopaulo-sp")
+        driver.get("https://www.accuweather.com/pt/br/s%C3%A3o-paulo/45881/current-weather/45881")
 
-        # Close cookie consent popup if present
-        try:
-            consent_button = WebDriverWait(driver, 5).until(
-                EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'OK')]"))
-            )
-            consent_button.click()
-        except:
-            pass
-
-        temperatura_element = WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'Temperatura')]/following-sibling::*[1] | //td[contains(text(), 'Temperatura')]/following-sibling::td"))
+        # Wait for temperature element
+        temperatura_element = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "div.current-weather-card div.temp"))
         )
+        temperatura = temperatura_element.text.strip()
 
-        umidade_element = WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'Umidade')]/following-sibling::*[1] | //td[contains(text(), 'Umidade')]/following-sibling::td"))
+        # Wait for humidity element label "Umidade" and get the sibling value
+        humidity_label = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//div[contains(text(),'Umidade')]"))
         )
+        humidity_value = humidity_label.find_element(By.XPATH, "./following-sibling::div").text.strip()
 
-        temperatura = temperatura_element.text.strip().replace("°", "")
-        umidade = umidade_element.text.strip()
         data_hora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
-=======
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
-    driver = webdriver.Chrome(options=options)
-    driver.get("https://www.google.com/search?q=temperatura+em+São+Paulo")
-    try:
-        temperatura = driver.find_element(By.ID, "wob_tm").text
-        umidade = driver.find_element(By.ID, "wob_hm").text
-        data_hora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
->>>>>>> cca05e2f0150bc4029a8566f52ec0463a1ebd928
-        if not os.path.exists(ARQUIVO_EXCEL):
+        temperatura_formatted = f"{temperatura}"
+        humidity_formatted = f"{humidity_value}"
+
+        if not os.path.exists(EXCEL_FILE_PATH):
             wb = Workbook()
             ws = wb.active
-            ws.append(["Data/Hora", "Temperatura (°C)", "Umidade"])
+            ws.append(["Data/Hora", "Temperatura", "Umidade"])
         else:
-            wb = load_workbook(ARQUIVO_EXCEL)
+            wb = load_workbook(EXCEL_FILE_PATH)
             ws = wb.active
-<<<<<<< HEAD
 
-        # Clean temperatura string to handle multiple lines or values
-        temperatura_clean = temperatura.split('\n')[0].strip()
-        umidade_clean = umidade.replace('%','').split('\n')[0].strip()
-        temperatura_str = f"{int(float(temperatura_clean))}°C"
-        umidade_str = f"{int(umidade_clean)}%"
-        ws.append([data_hora, temperatura_str, umidade_str])
-        try:
-            wb.save(ARQUIVO_EXCEL)
-        except PermissionError:
-            status_label.config(text="Erro: Feche o arquivo Excel antes de salvar.")
-            return
- 
-=======
-        ws.append([data_hora, temperatura, umidade])
-        wb.save(ARQUIVO_EXCEL)
->>>>>>> cca05e2f0150bc4029a8566f52ec0463a1ebd928
-        status_label.config(text=f"Capturado: {temperatura}°C, {umidade}")
+        ws.append([data_hora, temperatura_formatted, humidity_formatted])
+        wb.save(EXCEL_FILE_PATH)
+
+        status_label.config(text=f"Capturado: {temperatura_formatted}, {humidity_formatted}")
+        logging.info(f"Data captured: {temperatura_formatted}, {humidity_formatted} at {data_hora}")
+
     except Exception as e:
         status_label.config(text="Erro ao captar dados.")
-        print("Erro:", e)
-<<<<<<< HEAD
-        traceback.print_exc()
+        logging.error("Erro ao captar dados.", exc_info=True)
     finally:
         driver.quit()
 
-# Interface gráfica com Tkinter
-app = Tk()
-app.title("Captura de Temperatura SP (ClimaTempo)")
-app.geometry("300x180")
+def on_fetch_button_click(status_label: Label) -> None:
+    """
+    Run fetch_weather_data in a separate thread to avoid blocking the UI.
+    """
+    threading.Thread(target=fetch_weather_data, args=(status_label,), daemon=True).start()
 
-titulo = Label(app, text="Temperatura São Paulo", font=("Arial", 14))
-titulo.pack(pady=10)
+def main() -> None:
+    """
+    Setup and run the Tkinter GUI application.
+    """
+    app = Tk()
+    app.title("Captura de Temperatura SP (AccuWeather)")
+    app.geometry("300x180")
 
-botao = Button(app, text="Buscar previsão", command=buscar_dados, width=20, height=2, bg="lightblue")
-botao.pack(pady=10)
+    titulo = Label(app, text="Temperatura São Paulo", font=("Arial", 14))
+    titulo.pack(pady=10)
 
-status_label = Label(app, text="", font=("Arial", 10))
-status_label.pack()
+    status_label = Label(app, text="", font=("Arial", 10))
+    status_label.pack()
 
-=======
-    finally:
-        driver.quit()
+    botao = Button(
+        app,
+        text="Buscar previsão",
+        command=lambda: on_fetch_button_click(status_label),
+        width=20,
+        height=2,
+        bg="lightblue"
+    )
+    botao.pack(pady=10)
 
-app = Tk()
-app.title("Captura de Temperatura SP")
-app.geometry("300x180")
-titulo = Label(app, text="Temperatura São Paulo", font=("Arial", 14))
-titulo.pack(pady=10)
-botao = Button(app, text="Buscar previsão", command=buscar_dados, width=20, height=2, bg="lightblue")
-botao.pack(pady=10)
-status_label = Label(app, text="", font=("Arial", 10))
-status_label.pack()
->>>>>>> cca05e2f0150bc4029a8566f52ec0463a1ebd928
-app.mainloop()
+    app.mainloop()
+
+if __name__ == "__main__":
+    main()
